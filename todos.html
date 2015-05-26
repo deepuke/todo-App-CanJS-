@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>CanJS Tutorial</title>
+
+		<link href="style/style.css" type="text/css" rel="stylesheet" />
+
+		<script src="libs/jquery-1.11.3.min.js"></script>
+		<script src="libs/can.jquery.min.js"></script>
+		<script src="libs/can.object.js"></script>
+		<script src="libs/can.fixture.js"></script>
+	</head>
+	<body>
+
+		<script type="text/mustache" id="app-tmpl">
+			<todos-app>
+			<h2>Template item 1</h2>
+			<todos-create></todos-create>
+			<todos-list></todos-list>
+			<footer>
+			<span> <strong>{{todos.activeCount}}</strong> item left </span>
+			<ul id="filter">
+			<li>
+			<a class="selected" href="#!">All</a>
+			</li>
+			<li>
+			<a href="#!active">Active</a>
+			</li>
+			<li>
+			<a href="#!completed">Completed</a>
+			</li>
+			</ul>
+			<button>
+			Clear
+			</button>
+			</footer>
+			</todos-app>
+		</script>
+		<script type="text/mustache" id="todos-list-tmpl">
+			<ul>
+			{{#each todos}}
+			<li class="todo {{#if completed}} completed {{/if}}
+			{{#if editing}} editing {{/if}}">
+			<div class="view">
+			<input class="toggle" type="checkbox" can-value="completed" />
+			<label can-click="editTodo">{{name}}</label>
+			<button class="destroy" can-click="destroy">
+			delete
+			</button>
+			</div>
+			<input class="edit hide" type="text" value="{{name}}" can-blur="updateTodo" can-enter="updateTodo">
+			</li>
+			{{/each}}
+			</ul>
+		</script>
+		<div id="app"></div>
+
+		<script>
+			can.fixture({
+				'GET /services/todos' : function() {
+					return [{
+						id : 1,
+						name : "Deepu",
+						description : "testing can-js ",
+						completed : true
+					}, {
+						id : 2,
+						name : "Anisha",
+						description : "testing can-js ",
+						completed : false
+					}, {
+						id : 3,
+						name : "Santhosh",
+						description : "testing can-js ",
+						completed : false
+					}, {
+						id : 4,
+						name : "Deepa",
+						description : "testing can-js ",
+						completed : true
+					}];
+				},
+				'DELETE /services/todos/{id}' : function() {
+					return {};
+				},
+				'POST /services/todos' : function() {
+					console.log('Create new todo.');
+					return {
+						id : Math.random()
+					};
+				},
+				'PUT /services/todos/{id}' : function() {
+					console.log('Updated todo on the server.');
+					return {};
+				}
+			});
+
+			Todo = can.Model.extend({
+				findAll : 'GET /services/todos',
+				destroy : 'DELETE /services/todos/{id}',
+				create : 'POST /services/todos',
+				update : 'PUT /services/todos/{id}'
+			}, {});
+
+			Todo.List = Todo.List.extend({
+				filter : function(check) {
+					var list = new this.constructor;
+					this.each(function(todo) {
+						if (check(todo)) {
+							list.push(todo);
+						}
+					});
+					return list;
+				},
+
+				active : function() {
+					return this.filter(function(todo) {
+						return !todo.attr("completed");
+					});
+				},
+
+				activeCount : function() {
+					return this.active().attr("length");
+				}
+			});
+
+			can.Component.extend({
+				tag : 'todos-create',
+				template : '<input can-enter="createTodo" id="new-todo" placeholder="What need to be done?" autofocus="">',
+				scope : {
+					createTodo : function(context, el, event) {
+						if (el.val()) {
+							new Todo({
+								completed : false,
+								name : el.val()
+							}).save();
+							el.val("");
+						}
+					}
+				}
+			});
+
+			can.Component.extend({
+				tag : 'todos-list',
+				template : can.view("todos-list-tmpl"),
+				scope : {
+					editTodo : function(todo) {
+						todo.attr('editing', true);
+					},
+					updateTodo : function(todo, el) {
+						todo.removeAttr('editing', true);
+						todo.attr("name", el.val());
+						todo.save();
+					}
+				}
+			});
+
+			can.Component.extend({
+				tag : 'todos-app',
+				scope : {
+					todos : new Todo.List({})
+				},
+				events : {
+					"{Todo} created" : function(Todo, el, newTodo){
+						this.scope.attr("todos").push(newTodo);
+					}
+				}
+			});
+
+			
+
+			var frag = can.view("app-tmpl", {});
+			$("#app").html(frag);
+
+		</script>
+	</body>
+</html>

@@ -1,0 +1,27 @@
+body {
+	background: #cfcfcf;
+	padding: 20px;
+}
+h2 {
+	margin:10px 0;
+	padding: 0;	
+}
+ul {
+	margin: 0px;
+	padding: 10px;
+}
+
+li {
+	list-style: none
+}
+
+ul#filter li{display: inline;}
+
+li.completed label {
+	text-decoration: line-through;
+}
+
+.hide{display: none;}
+
+.editing label{display:none;}
+.editing .edit{display:block;}
